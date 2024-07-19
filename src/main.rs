@@ -19,6 +19,7 @@ mod game;
 pub struct App {
     points: u8,
     exit: bool,
+    current_screen: Screens,
 }
 #[derive(Debug, Default)]
 pub struct Card {
@@ -27,11 +28,18 @@ pub struct Card {
     value: u8,
 }
 
+#[derive(Debug)]
 pub enum Screens {
     Menu,
     Game,
     GameOver,
     Win,
+}
+
+impl Default for Screens {
+    fn default() -> Self {
+        Screens::Menu
+    }
 }
 
 impl App {
@@ -62,8 +70,13 @@ impl App {
             KeyCode::Char('q') => self.exit(),
             KeyCode::Left => self.decrement_points(),
             KeyCode::Right => self.increment_points(),
+            KeyCode::Enter => self.set_screen(Screens::Game),
             _ => {}
         }
+    }
+
+    fn set_screen(&mut self, screen: Screens) {
+        self.current_screen = screen;
     }
 
     fn exit(&mut self) {
@@ -81,9 +94,12 @@ impl App {
 
 impl Widget for &App {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let current_screen = Screens::Menu;
+        let current_screen = &self.current_screen;
 
-        let parent_layout = Layout::default().margin(1).split(area);
+        let parent_layout = Layout::default()
+            .constraints([Constraint::Percentage(100)])
+            .margin(1)
+            .split(area);
 
         // let game_layout = Layout::default()
         //     .direction(Direction::Vertical)
@@ -127,7 +143,45 @@ impl Widget for &App {
                             .position(Position::Bottom),
                     )
                     .border_set(border::THICK);
-                block.render(area, buf);
+                Paragraph::new("Start new Game")
+                    .block(block)
+                    .render(parent_layout[0], buf);
+            }
+            Screens::Game => {
+                let game_layout = Layout::default()
+                    .direction(Direction::Vertical)
+                    .constraints(
+                        [
+                            Constraint::Length(5),
+                            Constraint::Min(5),
+                            Constraint::Length(5),
+                        ]
+                        .as_ref(),
+                    )
+                    .split(parent_layout[0]);
+                let title = Title::from(" Game ".bold());
+                let instructions =
+                    Title::from(Line::from(vec![" Quit ".into(), "<Q> ".blue().bold()]));
+                let block = Block::bordered()
+                    .title(title.alignment(Alignment::Center))
+                    .title(
+                        instructions
+                            .alignment(Alignment::Center)
+                            .position(Position::Bottom),
+                    )
+                    .border_set(border::THICK);
+                Paragraph::new("Opponent Cards")
+                    .alignment(Alignment::Center)
+                    .block(block.clone())
+                    .render(game_layout[0], buf);
+                Paragraph::new("Table where the game is being played")
+                    .alignment(Alignment::Center)
+                    .block(block.clone())
+                    .render(game_layout[1], buf);
+                Paragraph::new("Your Cards")
+                    .alignment(Alignment::Center)
+                    .block(block.clone())
+                    .render(game_layout[2], buf);
             }
             _ => {}
         }

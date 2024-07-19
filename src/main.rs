@@ -143,9 +143,13 @@ impl Widget for &App {
                             .position(Position::Bottom),
                     )
                     .border_set(border::THICK);
-                Paragraph::new("Start new Game")
-                    .block(block)
-                    .render(parent_layout[0], buf);
+                Paragraph::new(vec![
+                    Line::from("Start new Game"),
+                    Line::from("<Enter>").blue().bold(),
+                ])
+                .alignment(Alignment::Center)
+                .block(block)
+                .render(parent_layout[0], buf);
             }
             Screens::Game => {
                 let game_layout = Layout::default()
@@ -159,17 +163,7 @@ impl Widget for &App {
                         .as_ref(),
                     )
                     .split(parent_layout[0]);
-                let title = Title::from(" Game ".bold());
-                let instructions =
-                    Title::from(Line::from(vec![" Quit ".into(), "<Q> ".blue().bold()]));
-                let block = Block::bordered()
-                    .title(title.alignment(Alignment::Center))
-                    .title(
-                        instructions
-                            .alignment(Alignment::Center)
-                            .position(Position::Bottom),
-                    )
-                    .border_set(border::THICK);
+                let block = Block::bordered().border_set(border::THICK);
                 Paragraph::new("Opponent Cards")
                     .alignment(Alignment::Center)
                     .block(block.clone())

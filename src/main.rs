@@ -7,7 +7,7 @@ use ratatui::{
     text::{Line, Text},
     widgets::{
         block::{Position, Title},
-        Block, Paragraph, Widget,
+        Block, Padding, Paragraph, Widget,
     },
     Frame,
 };
@@ -256,8 +256,15 @@ impl Widget for &App {
                     .constraints([Constraint::Percentage(20), Constraint::Percentage(80)])
                     .split(game_layout[0]);
 
+                let card_block = Block::bordered()
+                    .border_set(border::EMPTY)
+                    .padding(Padding::symmetric(2, 2));
+                let inner_card_block = Block::bordered()
+                    .border_set(border::THICK)
+                    .padding(Padding::horizontal(5));
+
                 let top_game_cards_layout = Layout::default()
-                    .direction(Direction::Vertical)
+                    .direction(Direction::Horizontal)
                     .constraints::<&Vec<Constraint>>(
                         (0..self.cards.len())
                             .map(|_| Constraint::Percentage(100 / self.cards.len() as u16))
@@ -267,10 +274,15 @@ impl Widget for &App {
                     .split(top_game_layout[1]);
 
                 for (i, card) in self.cards.iter().enumerate() {
+                    let card_block = if i == 0 {
+                        inner_card_block.clone()
+                    } else {
+                        card_block.clone()
+                    };
                     let card_text = Text::from(vec![Line::from(get_card_value(&card).to_string())]);
                     Paragraph::new(card_text)
                         .alignment(Alignment::Center)
-                        .block(block.clone())
+                        .block(card_block.clone())
                         .render(top_game_cards_layout[i], buf);
                 }
 

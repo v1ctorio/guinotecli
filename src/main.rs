@@ -15,17 +15,62 @@ use std::io;
 
 mod game;
 
+#[derive(Debug)]
+enum CardsValues {
+    As,
+    Dos,
+    Tres,
+    Cuatro,
+    Cinco,
+    Seis,
+    Siete,
+    Ocho,
+    Nueve,
+    Diez,
+    Sota,
+    Caballo,
+    Rey,
+}
+#[derive(Debug)]
+enum Palos {
+    Espadas,
+    Bastos,
+    Copas,
+    Oros,
+}
+
+fn get_card_value(card: &Card) -> u8 {
+    match card.value {
+        CardsValues::As => 11,
+        CardsValues::Tres => 10,
+        CardsValues::Rey => 4,
+        CardsValues::Caballo => 3,
+        CardsValues::Sota => 2,
+        _ => 0,
+    }
+}
+
+fn get_card_emoji(card: &Card) -> String {
+    match card.palo {
+        Palos::Espadas => "🗡️",
+        Palos::Bastos => "🏏",
+        Palos::Copas => "🏆",
+        Palos::Oros => "🪙",
+    }
+    .to_string()
+}
+
 #[derive(Debug, Default)]
 pub struct App {
     points: u8,
     exit: bool,
     current_screen: Screens,
+    cards: Vec<Card>,
 }
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Card {
-    name: String,
-    identifier: u8,
-    value: u8,
+    value: CardsValues,
+    palo: Palos,
 }
 
 #[derive(Debug)]
@@ -43,6 +88,35 @@ impl Default for Screens {
 }
 
 impl App {
+    pub fn new() -> Self {
+        App {
+            points: 0,
+            exit: false,
+            current_screen: Screens::Menu,
+            cards: vec![
+                Card {
+                    value: CardsValues::As,
+                    palo: Palos::Bastos,
+                },
+                Card {
+                    value: CardsValues::Dos,
+                    palo: Palos::Bastos,
+                },
+                Card {
+                    value: CardsValues::Tres,
+                    palo: Palos::Espadas,
+                },
+                Card {
+                    value: CardsValues::Cuatro,
+                    palo: Palos::Oros,
+                },
+                Card {
+                    value: CardsValues::Sota,
+                    palo: Palos::Copas,
+                },
+            ],
+        }
+    }
     pub fn run(&mut self, terminal: &mut game::Tui) -> io::Result<()> {
         while !self.exit {
             terminal.draw(|frame| self.render_frame(frame))?;
@@ -98,7 +172,7 @@ impl Widget for &App {
 
         let parent_layout = Layout::default()
             .constraints([Constraint::Percentage(100)])
-            .margin(1)
+            .margin(0)
             .split(area);
 
         // let game_layout = Layout::default()
@@ -156,18 +230,62 @@ impl Widget for &App {
                     .direction(Direction::Vertical)
                     .constraints(
                         [
-                            Constraint::Length(5),
+                            Constraint::Length(10),
                             Constraint::Min(5),
-                            Constraint::Length(5),
+                            Constraint::Length(10),
                         ]
                         .as_ref(),
                     )
                     .split(parent_layout[0]);
-                let block = Block::bordered().border_set(border::THICK);
+                let block = Block::bordered().border_set(border::PLAIN);
+
+                let title = Title::from(" Game ".bold());
+                let instructions =
+                    Title::from(Line::from(vec![" Quit ".into(), "<Q> ".blue().bold()]));
+                let parent_block = Block::bordered()
+                    .title(title.alignment(Alignment::Center))
+                    .title(
+                        instructions
+                            .alignment(Alignment::Center)
+                            .position(Position::Bottom),
+                    )
+                    .border_set(border::THICK);
+
+                let top_game_layout = Layout::default()
+                    .direction(Direction::Horizontal)
+                    .constraints([Constraint::Percentage(20), Constraint::Percentage(80)])
+                    .split(game_layout[0]);
+
+                let top_game_cards_layout = Layout::default()
+                    .direction(Direction::Vertical)
+                    .constraints::<&Vec<Constraint>>(
+                        (0..self.cards.len())
+                            .map(|_| Constraint::Percentage(100 / self.cards.len() as u16))
+                            .collect::<Vec<Constraint>>()
+                            .as_ref(),
+                    )
+                    .split(top_game_layout[1]);
+
+                for (i, card) in self.cards.iter().enumerate() {
+                    let card_text = Text::from(vec![Line::from(get_card_value(&card).to_string())]);
+                    Paragraph::new(card_text)
+                        .alignment(Alignment::Center)
+                        .block(block.clone())
+                        .render(top_game_cards_layout[i], buf);
+                }
+
+                Paragraph::new(vec![
+                    Line::from("Puntuation"),
+                    Line::from(self.points.to_string()),
+                ])
+                .alignment(Alignment::Left)
+                .block(block.clone())
+                .render(top_game_layout[0], buf);
                 Paragraph::new("Opponent Cards")
                     .alignment(Alignment::Center)
                     .block(block.clone())
-                    .render(game_layout[0], buf);
+                    .render(top_game_layout[1], buf);
+
                 Paragraph::new("Table where the game is being played")
                     .alignment(Alignment::Center)
                     .block(block.clone())
@@ -176,6 +294,7 @@ impl Widget for &App {
                     .alignment(Alignment::Center)
                     .block(block.clone())
                     .render(game_layout[2], buf);
+                parent_block.render(parent_layout[0], buf)
             }
             _ => {}
         }
@@ -184,7 +303,7 @@ impl Widget for &App {
 
 fn main() -> io::Result<()> {
     let mut terminal = game::init()?;
-    let app_result = App::default().run(&mut terminal);
+    let app_result = App::new().run(&mut terminal);
     game::restore()?;
     app_result
 }

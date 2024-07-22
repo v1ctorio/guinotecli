@@ -1,13 +1,13 @@
 use ratatui::{
     buffer::Buffer,
     crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind},
-    layout::{Alignment, Constraint, Direction, Layout, Rect},
+    layout::{Alignment, Constraint, Direction, Flex, Layout, Rect},
     style::Stylize,
     symbols::border,
     text::{Line, Text},
     widgets::{
         block::{Position, Title},
-        Block, Padding, Paragraph, Widget,
+        Block, Borders, Padding, Paragraph, Widget,
     },
     Frame,
 };
@@ -50,14 +50,31 @@ fn get_card_value(card: &Card) -> u8 {
     }
 }
 
-fn get_card_emoji(card: &Card) -> String {
-    match card.palo {
-        Palos::Espadas => "🗡️",
-        Palos::Bastos => "🏏",
-        Palos::Copas => "🏆",
-        Palos::Oros => "🪙",
+fn get_card_name(card: &Card) -> &str {
+    match card.value {
+        CardsValues::As => "As",
+        CardsValues::Dos => "Dos",
+        CardsValues::Tres => "Tres",
+        CardsValues::Cuatro => "Cuatro",
+        CardsValues::Cinco => "Cinco",
+        CardsValues::Seis => "Seis",
+        CardsValues::Siete => "Siete",
+        CardsValues::Ocho => "Ocho",
+        CardsValues::Nueve => "Nueve",
+        CardsValues::Diez => "Diez",
+        CardsValues::Sota => "Sota",
+        CardsValues::Caballo => "Caballo",
+        CardsValues::Rey => "Rey",
     }
-    .to_string()
+}
+
+fn get_card_emoji(card: &Card) -> char {
+    match card.palo {
+        Palos::Espadas => '⚔',
+        Palos::Bastos => '🏏',
+        Palos::Copas => '🏆',
+        Palos::Oros => '🪙',
+    }
 }
 
 #[derive(Debug, Default)]
@@ -65,7 +82,9 @@ pub struct App {
     points: u8,
     exit: bool,
     current_screen: Screens,
-    cards: Vec<Card>,
+    opponent_cards: Vec<Card>,
+    player_cards: Vec<Card>,
+    selected_card: Option<u8>,
 }
 #[derive(Debug)]
 pub struct Card {
@@ -93,7 +112,7 @@ impl App {
             points: 0,
             exit: false,
             current_screen: Screens::Menu,
-            cards: vec![
+            opponent_cards: vec![
                 Card {
                     value: CardsValues::As,
                     palo: Palos::Bastos,
@@ -115,6 +134,25 @@ impl App {
                     palo: Palos::Copas,
                 },
             ],
+            player_cards: vec![
+                Card {
+                    value: CardsValues::As,
+                    palo: Palos::Copas,
+                },
+                Card {
+                    value: CardsValues::Dos,
+                    palo: Palos::Copas,
+                },
+                Card {
+                    value: CardsValues::Tres,
+                    palo: Palos::Copas,
+                },
+                Card {
+                    value: CardsValues::Cuatro,
+                    palo: Palos::Copas,
+                },
+            ],
+            selected_card: None,
         }
     }
     pub fn run(&mut self, terminal: &mut game::Tui) -> io::Result<()> {
@@ -163,6 +201,14 @@ impl App {
 
     fn decrement_points(&mut self) {
         self.points -= 1;
+    }
+    fn select_card(&mut self, card: u8) {
+        self.selected_card = Some(card);
+    }
+    fn get_selected_card(&self) -> Option<&Card> {
+        let c = self.selected_card.unwrap();
+        self.selected_card
+            .map(|card| &self.player_cards[card as usize])
     }
 }
 
@@ -226,6 +272,7 @@ impl Widget for &App {
                 .render(parent_layout[0], buf);
             }
             Screens::Game => {
+                //DEFINE MAIN GAME LAYOUT
                 let game_layout = Layout::default()
                     .direction(Direction::Vertical)
                     .constraints(
@@ -253,39 +300,39 @@ impl Widget for &App {
 
                 let top_game_layout = Layout::default()
                     .direction(Direction::Horizontal)
-                    .constraints([Constraint::Percentage(20), Constraint::Percentage(80)])
+                    .constraints([Constraint::Percentage(10), Constraint::Percentage(90)])
                     .split(game_layout[0]);
 
-                let card_block = Block::bordered()
-                    .border_set(border::EMPTY)
-                    .padding(Padding::symmetric(2, 2));
-                let inner_card_block = Block::bordered()
-                    .border_set(border::THICK)
-                    .padding(Padding::horizontal(5));
-
+                //RENDER CARDS OF THE TOP
                 let top_game_cards_layout = Layout::default()
                     .direction(Direction::Horizontal)
                     .constraints::<&Vec<Constraint>>(
-                        (0..self.cards.len())
-                            .map(|_| Constraint::Percentage(100 / self.cards.len() as u16))
+                        (0..self.opponent_cards.len())
+                            .map(|_| Constraint::Percentage(100 / self.opponent_cards.len() as u16))
                             .collect::<Vec<Constraint>>()
                             .as_ref(),
                     )
                     .split(top_game_layout[1]);
 
-                for (i, card) in self.cards.iter().enumerate() {
-                    let card_block = if i == 0 {
-                        inner_card_block.clone()
-                    } else {
-                        card_block.clone()
-                    };
-                    let card_text = Text::from(vec![Line::from(get_card_value(&card).to_string())]);
+                let card_block = Block::default().on_red();
+                for (i, card) in self.opponent_cards.iter().enumerate() {
+                    //let card_area = centered_rect(40, 60, top_game_cards_layout[i]);
+                    let card_area = center(
+                        top_game_cards_layout[i],
+                        Constraint::Length(9),
+                        Constraint::Length(6),
+                    );
+                    let card_text = Text::from(vec![
+                        Line::from(get_card_name(&card).to_string()),
+                        Line::from(get_card_emoji(&card).to_string()),
+                    ]);
                     Paragraph::new(card_text)
                         .alignment(Alignment::Center)
                         .block(card_block.clone())
-                        .render(top_game_cards_layout[i], buf);
+                        .render(card_area, buf);
                 }
 
+                //RENDER POINTS AND OPPONENT CARDS
                 Paragraph::new(vec![
                     Line::from("Puntuation"),
                     Line::from(self.points.to_string()),
@@ -297,6 +344,37 @@ impl Widget for &App {
                     .alignment(Alignment::Center)
                     .block(block.clone())
                     .render(top_game_layout[1], buf);
+
+                //RENDER PLAYER CARDS
+
+                let player_cards_layout = Layout::default()
+                    .direction(Direction::Horizontal)
+                    .constraints::<&Vec<Constraint>>(
+                        (0..self.player_cards.len())
+                            .map(|_| Constraint::Percentage(100 / self.player_cards.len() as u16))
+                            .collect::<Vec<Constraint>>()
+                            .as_ref(),
+                    )
+                    .split(game_layout[2]);
+
+                for (i, card) in self.player_cards.iter().enumerate() {
+                    let card_area = centered_rect(30, 60, player_cards_layout[i]);
+                    let card_text = Text::from(vec![
+                        Line::from(get_card_name(&card).to_string()),
+                        Line::from(get_card_emoji(&card).to_string()),
+                    ]);
+
+                    let user_card_block = Block::default().on_green().title(
+                        Title::from(i.to_string())
+                            .position(Position::Bottom)
+                            .alignment(Alignment::Center),
+                    );
+
+                    Paragraph::new(card_text)
+                        .alignment(Alignment::Center)
+                        .block(user_card_block)
+                        .render(card_area, buf);
+                }
 
                 Paragraph::new("Table where the game is being played")
                     .alignment(Alignment::Center)
@@ -318,4 +396,37 @@ fn main() -> io::Result<()> {
     let app_result = App::new().run(&mut terminal);
     game::restore()?;
     app_result
+}
+
+fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
+    let popup_layout = Layout::vertical([
+        Constraint::Percentage((100 - percent_y) / 2),
+        Constraint::Percentage(percent_y),
+        Constraint::Percentage((100 - percent_y) / 2),
+    ])
+    .split(r);
+
+    Layout::horizontal([
+        Constraint::Percentage((100 - percent_x) / 2),
+        Constraint::Percentage(percent_x),
+        Constraint::Percentage((100 - percent_x) / 2),
+    ])
+    .split(popup_layout[1])[1]
+}
+
+fn render_card_area(r: Rect) -> Rect {
+    Rect {
+        x: r.width,
+        y: r.height,
+        width: 40,
+        height: 60,
+    }
+}
+
+fn center(area: Rect, horizontal: Constraint, vertical: Constraint) -> Rect {
+    let [area] = Layout::horizontal([horizontal])
+        .flex(Flex::Center)
+        .areas(area);
+    let [area] = Layout::vertical([vertical]).flex(Flex::Center).areas(area);
+    area
 }

@@ -15,6 +15,9 @@ use std::io;
 
 mod game;
 
+const CARD_WIDTH: u16 = 9;
+const CARD_HEIGHT: u16 = 6;
+
 #[derive(Debug)]
 enum CardsValues {
     As,
@@ -152,7 +155,7 @@ impl App {
                     palo: Palos::Copas,
                 },
             ],
-            selected_card: None,
+            selected_card: Some(3),
         }
     }
     pub fn run(&mut self, terminal: &mut game::Tui) -> io::Result<()> {
@@ -319,8 +322,8 @@ impl Widget for &App {
                     //let card_area = centered_rect(40, 60, top_game_cards_layout[i]);
                     let card_area = center(
                         top_game_cards_layout[i],
-                        Constraint::Length(9),
-                        Constraint::Length(6),
+                        Constraint::Length(CARD_WIDTH),
+                        Constraint::Length(CARD_HEIGHT),
                     );
                     let card_text = Text::from(vec![
                         Line::from(get_card_name(&card).to_string()),
@@ -358,17 +361,34 @@ impl Widget for &App {
                     .split(game_layout[2]);
 
                 for (i, card) in self.player_cards.iter().enumerate() {
-                    let card_area = centered_rect(30, 60, player_cards_layout[i]);
+                    let card_area = center(
+                        player_cards_layout[i],
+                        Constraint::Length(CARD_WIDTH),
+                        Constraint::Length(CARD_HEIGHT),
+                    );
                     let card_text = Text::from(vec![
                         Line::from(get_card_name(&card).to_string()),
                         Line::from(get_card_emoji(&card).to_string()),
                     ]);
 
-                    let user_card_block = Block::default().on_green().title(
-                        Title::from(i.to_string())
+                    let mut user_card_block = Block::default().on_green().title(
+                        Title::from((i + 1).to_string())
                             .position(Position::Bottom)
                             .alignment(Alignment::Center),
                     );
+                    if let Some(slctd) = self.selected_card {
+                        let i = i as u8;
+                        if slctd == i {
+                            user_card_block = Block::bordered()
+                                .on_green()
+                                .title(
+                                    Title::from((i + 1).to_string())
+                                        .position(Position::Bottom)
+                                        .alignment(Alignment::Center),
+                                )
+                                .border_set(border::DOUBLE);
+                        }
+                    }
 
                     Paragraph::new(card_text)
                         .alignment(Alignment::Center)
@@ -396,31 +416,6 @@ fn main() -> io::Result<()> {
     let app_result = App::new().run(&mut terminal);
     game::restore()?;
     app_result
-}
-
-fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
-    let popup_layout = Layout::vertical([
-        Constraint::Percentage((100 - percent_y) / 2),
-        Constraint::Percentage(percent_y),
-        Constraint::Percentage((100 - percent_y) / 2),
-    ])
-    .split(r);
-
-    Layout::horizontal([
-        Constraint::Percentage((100 - percent_x) / 2),
-        Constraint::Percentage(percent_x),
-        Constraint::Percentage((100 - percent_x) / 2),
-    ])
-    .split(popup_layout[1])[1]
-}
-
-fn render_card_area(r: Rect) -> Rect {
-    Rect {
-        x: r.width,
-        y: r.height,
-        width: 40,
-        height: 60,
-    }
 }
 
 fn center(area: Rect, horizontal: Constraint, vertical: Constraint) -> Rect {

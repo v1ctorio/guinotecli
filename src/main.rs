@@ -190,6 +190,10 @@ impl App {
             KeyCode::Left => self.decrement_points(),
             KeyCode::Right => self.increment_points(),
             KeyCode::Enter => self.set_screen(Screens::Game),
+            KeyCode::Char('1') => self.select_card(0),
+            KeyCode::Char('2') => self.select_card(1),
+            KeyCode::Char('3') => self.select_card(2),
+            KeyCode::Char('4') => self.select_card(3),
             _ => {}
         }
     }
@@ -330,7 +334,7 @@ impl Widget for &App {
                         Constraint::Length(CARD_HEIGHT),
                     );
                     let card_text = Text::from(vec![
-                        Line::from(card.emoji().to_string()),
+                        Line::from(card.name().to_string()),
                         Line::from(card.emoji().to_string()),
                     ]);
                     Paragraph::new(card_text)

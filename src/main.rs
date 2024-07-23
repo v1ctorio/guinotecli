@@ -336,13 +336,45 @@ impl Widget for &App {
                 }
 
                 //RENDER POINTS AND OPPONENT CARDS
+                
+                
+                let vertically_divided_info_box = Layout::default()
+                    .direction(Direction::Vertical)
+                    .constraints([Constraint::Percentage(10),Constraint::Percentage(45),Constraint::Percentage(45)] )
+                    .split(top_game_layout[0]);
+
+                let vertically_divided_top_part_layout_wo_margin = Layout::default()
+                    .direction(Direction::Horizontal)
+                    .constraints([Constraint::Percentage(10),Constraint::Percentage(90)])
+                    .split(vertically_divided_info_box[1]);
+
+                
+                    let horizontally_divided_info_box = Layout::default()
+                    .direction(Direction::Horizontal)
+                    .constraints([Constraint::Percentage(50),Constraint::Percentage(50)])
+                    .split(vertically_divided_top_part_layout_wo_margin[1]);
+                
+
                 Paragraph::new(vec![
-                    Line::from("Puntuation"),
-                    Line::from(self.points.to_string()),
+                    Line::from("Yours"),
+                    Line::from(self.points.to_string()).alignment(Alignment::Center),
+                ])
+                .alignment(Alignment::Right)
+                .block(block.clone())
+                .render(horizontally_divided_info_box[0], buf);
+
+                Paragraph::new(vec![
+                    Line::from("Opponent"),
+                    Line::from(self.points.to_string()).alignment(Alignment::Center),
                 ])
                 .alignment(Alignment::Left)
                 .block(block.clone())
-                .render(top_game_layout[0], buf);
+                .render(horizontally_divided_info_box[1], buf);
+            
+            Block::bordered().border_set(border::ROUNDED).title(Title::from("Points").alignment(Alignment::Center)).on_blue().render(vertically_divided_top_part_layout_wo_margin[1], buf);
+
+
+            //OPPONENT CARDS
                 Paragraph::new("Opponent Cards")
                     .alignment(Alignment::Center)
                     .block(block.clone())

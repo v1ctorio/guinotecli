@@ -274,7 +274,138 @@ impl Widget for &App {
                 .block(block)
                 .render(parent_layout[0], buf);
             }
-            Screens::Game => render_game(self, area, buf),
+            Screens::Game => {
+                //DEFINE MAIN GAME LAYOUT
+                let game_layout = Layout::default()
+                    .direction(Direction::Vertical)
+                    .constraints(
+                        [
+                            Constraint::Length(10),
+                            Constraint::Min(5),
+                            Constraint::Length(10),
+                        ]
+                        .as_ref(),
+                    )
+                    .split(parent_layout[0]);
+                let block = Block::bordered().border_set(border::PLAIN);
+
+                let title = Title::from(" Game ".bold());
+                let instructions =
+                    Title::from(Line::from(vec![" Quit ".into(), "<Q> ".blue().bold()]));
+                let parent_block = Block::bordered()
+                    .title(title.alignment(Alignment::Center))
+                    .title(
+                        instructions
+                            .alignment(Alignment::Center)
+                            .position(Position::Bottom),
+                    )
+                    .border_set(border::THICK);
+
+                let top_game_layout = Layout::default()
+                    .direction(Direction::Horizontal)
+                    .constraints([Constraint::Percentage(10), Constraint::Percentage(90)])
+                    .split(game_layout[0]);
+
+                //RENDER CARDS OF THE TOP
+                let top_game_cards_layout = Layout::default()
+                    .direction(Direction::Horizontal)
+                    .constraints::<&Vec<Constraint>>(
+                        (0..self.opponent_cards.len())
+                            .map(|_| Constraint::Percentage(100 / self.opponent_cards.len() as u16))
+                            .collect::<Vec<Constraint>>()
+                            .as_ref(),
+                    )
+                    .split(top_game_layout[1]);
+
+                let card_block = Block::default().on_red();
+                for (i, card) in self.opponent_cards.iter().enumerate() {
+                    //let card_area = centered_rect(40, 60, top_game_cards_layout[i]);
+                    let card_area = center(
+                        top_game_cards_layout[i],
+                        Constraint::Length(CARD_WIDTH),
+                        Constraint::Length(CARD_HEIGHT),
+                    );
+                    let card_text = Text::from(vec![
+                        Line::from(get_card_name(&card).to_string()),
+                        Line::from(get_card_emoji(&card).to_string()),
+                    ]);
+                    Paragraph::new(card_text)
+                        .alignment(Alignment::Center)
+                        .block(card_block.clone())
+                        .render(card_area, buf);
+                }
+
+                //RENDER POINTS AND OPPONENT CARDS
+                Paragraph::new(vec![
+                    Line::from("Puntuation"),
+                    Line::from(self.points.to_string()),
+                ])
+                .alignment(Alignment::Left)
+                .block(block.clone())
+                .render(top_game_layout[0], buf);
+                Paragraph::new("Opponent Cards")
+                    .alignment(Alignment::Center)
+                    .block(block.clone())
+                    .render(top_game_layout[1], buf);
+
+                //RENDER PLAYER CARDS
+
+                let player_cards_layout = Layout::default()
+                    .direction(Direction::Horizontal)
+                    .constraints::<&Vec<Constraint>>(
+                        (0..self.player_cards.len())
+                            .map(|_| Constraint::Percentage(100 / self.player_cards.len() as u16))
+                            .collect::<Vec<Constraint>>()
+                            .as_ref(),
+                    )
+                    .split(game_layout[2]);
+
+                for (i, card) in self.player_cards.iter().enumerate() {
+                    let card_area = center(
+                        player_cards_layout[i],
+                        Constraint::Length(CARD_WIDTH),
+                        Constraint::Length(CARD_HEIGHT),
+                    );
+                    let card_text = Text::from(vec![
+                        Line::from(get_card_name(&card).to_string()),
+                        Line::from(get_card_emoji(&card).to_string()),
+                    ]);
+
+                    let mut user_card_block = Block::default().on_green().title(
+                        Title::from((i + 1).to_string())
+                            .position(Position::Bottom)
+                            .alignment(Alignment::Center),
+                    );
+                    if let Some(slctd) = self.selected_card {
+                        let i = i as u8;
+                        if slctd == i {
+                            user_card_block = Block::bordered()
+                                .on_green()
+                                .title(
+                                    Title::from((i + 1).to_string())
+                                        .position(Position::Bottom)
+                                        .alignment(Alignment::Center),
+                                )
+                                .border_set(border::DOUBLE);
+                        }
+                    }
+
+                    Paragraph::new(card_text)
+                        .alignment(Alignment::Center)
+                        .block(user_card_block)
+                        .render(card_area, buf);
+                }
+
+                Paragraph::new("Table where the game is being played")
+                    .alignment(Alignment::Center)
+                    .block(block.clone())
+                    .render(game_layout[1], buf);
+                Paragraph::new("Your Cards")
+                    .alignment(Alignment::Center)
+                    .block(block.clone())
+                    .render(game_layout[2], buf);
+                parent_block.render(parent_layout[0], buf)
+            }
             _ => {}
         }
     }
@@ -293,135 +424,4 @@ fn center(area: Rect, horizontal: Constraint, vertical: Constraint) -> Rect {
         .areas(area);
     let [area] = Layout::vertical([vertical]).flex(Flex::Center).areas(area);
     area
-}
-
-fn render_game(app: App, area: Rect, buf: &mut Buffer) {
-    let game_layout = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints(
-            [
-                Constraint::Length(10),
-                Constraint::Min(5),
-                Constraint::Length(10),
-            ]
-            .as_ref(),
-        )
-        .split(parent_layout[0]);
-    let block = Block::bordered().border_set(border::PLAIN);
-
-    let title = Title::from(" Game ".bold());
-    let instructions = Title::from(Line::from(vec![" Quit ".into(), "<Q> ".blue().bold()]));
-    let parent_block = Block::bordered()
-        .title(title.alignment(Alignment::Center))
-        .title(
-            instructions
-                .alignment(Alignment::Center)
-                .position(Position::Bottom),
-        )
-        .border_set(border::THICK);
-
-    let top_game_layout = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(10), Constraint::Percentage(90)])
-        .split(game_layout[0]);
-
-    //RENDER CARDS OF THE TOP
-    let top_game_cards_layout = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints::<&Vec<Constraint>>(
-            (0..self.opponent_cards.len())
-                .map(|_| Constraint::Percentage(100 / self.opponent_cards.len() as u16))
-                .collect::<Vec<Constraint>>()
-                .as_ref(),
-        )
-        .split(top_game_layout[1]);
-
-    let card_block = Block::default().on_red();
-    for (i, card) in self.opponent_cards.iter().enumerate() {
-        //let card_area = centered_rect(40, 60, top_game_cards_layout[i]);
-        let card_area = center(
-            top_game_cards_layout[i],
-            Constraint::Length(CARD_WIDTH),
-            Constraint::Length(CARD_HEIGHT),
-        );
-        let card_text = Text::from(vec![
-            Line::from(get_card_name(&card).to_string()),
-            Line::from(get_card_emoji(&card).to_string()),
-        ]);
-        Paragraph::new(card_text)
-            .alignment(Alignment::Center)
-            .block(card_block.clone())
-            .render(card_area, buf);
-    }
-
-    //RENDER POINTS AND OPPONENT CARDS
-    Paragraph::new(vec![
-        Line::from("Puntuation"),
-        Line::from(self.points.to_string()),
-    ])
-    .alignment(Alignment::Left)
-    .block(block.clone())
-    .render(top_game_layout[0], buf);
-    Paragraph::new("Opponent Cards")
-        .alignment(Alignment::Center)
-        .block(block.clone())
-        .render(top_game_layout[1], buf);
-
-    //RENDER PLAYER CARDS
-
-    let player_cards_layout = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints::<&Vec<Constraint>>(
-            (0..self.player_cards.len())
-                .map(|_| Constraint::Percentage(100 / self.player_cards.len() as u16))
-                .collect::<Vec<Constraint>>()
-                .as_ref(),
-        )
-        .split(game_layout[2]);
-
-    for (i, card) in self.player_cards.iter().enumerate() {
-        let card_area = center(
-            player_cards_layout[i],
-            Constraint::Length(CARD_WIDTH),
-            Constraint::Length(CARD_HEIGHT),
-        );
-        let card_text = Text::from(vec![
-            Line::from(get_card_name(&card).to_string()),
-            Line::from(get_card_emoji(&card).to_string()),
-        ]);
-
-        let mut user_card_block = Block::default().on_green().title(
-            Title::from((i + 1).to_string())
-                .position(Position::Bottom)
-                .alignment(Alignment::Center),
-        );
-        if let Some(slctd) = self.selected_card {
-            let i = i as u8;
-            if slctd == i {
-                user_card_block = Block::bordered()
-                    .on_green()
-                    .title(
-                        Title::from((i + 1).to_string())
-                            .position(Position::Bottom)
-                            .alignment(Alignment::Center),
-                    )
-                    .border_set(border::DOUBLE);
-            }
-        }
-
-        Paragraph::new(card_text)
-            .alignment(Alignment::Center)
-            .block(user_card_block)
-            .render(card_area, buf);
-    }
-
-    Paragraph::new("Table where the game is being played")
-        .alignment(Alignment::Center)
-        .block(block.clone())
-        .render(game_layout[1], buf);
-    Paragraph::new("Your Cards")
-        .alignment(Alignment::Center)
-        .block(block.clone())
-        .render(game_layout[2], buf);
-    parent_block.render(parent_layout[0], buf)
 }

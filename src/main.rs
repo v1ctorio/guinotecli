@@ -42,45 +42,47 @@ enum Palos {
     Oros,
 }
 
-fn get_card_value(card: &Card) -> u8 {
-    match card.value {
-        CardsValues::As => 11,
-        CardsValues::Tres => 10,
-        CardsValues::Rey => 4,
-        CardsValues::Caballo => 3,
-        CardsValues::Sota => 2,
-        _ => 0,
+impl Card {
+    fn emoji(&self) -> char {
+        match self.palo {
+            Palos::Espadas => '⚔',
+            Palos::Bastos => '🏏',
+            Palos::Copas => '🏆',
+            Palos::Oros => '🪙',
+        }
+    }
+    fn name(&self) -> &str {
+        match self.value {
+            CardsValues::As => "As",
+            CardsValues::Dos => "Dos",
+            CardsValues::Tres => "Tres",
+            CardsValues::Cuatro => "Cuatro",
+            CardsValues::Cinco => "Cinco",
+            CardsValues::Seis => "Seis",
+            CardsValues::Siete => "Siete",
+            CardsValues::Ocho => "Ocho",
+            CardsValues::Nueve => "Nueve",
+            CardsValues::Diez => "Diez",
+            CardsValues::Sota => "Sota",
+            CardsValues::Caballo => "Caballo",
+            CardsValues::Rey => "Rey",
+        }
     }
 }
 
-fn get_card_name(card: &Card) -> &str {
-    match card.value {
-        CardsValues::As => "As",
-        CardsValues::Dos => "Dos",
-        CardsValues::Tres => "Tres",
-        CardsValues::Cuatro => "Cuatro",
-        CardsValues::Cinco => "Cinco",
-        CardsValues::Seis => "Seis",
-        CardsValues::Siete => "Siete",
-        CardsValues::Ocho => "Ocho",
-        CardsValues::Nueve => "Nueve",
-        CardsValues::Diez => "Diez",
-        CardsValues::Sota => "Sota",
-        CardsValues::Caballo => "Caballo",
-        CardsValues::Rey => "Rey",
+impl Palos {
+    fn to_string(&self) -> String {
+        match self {
+            Palos::Espadas => "⚔ Espadas",
+            Palos::Bastos => "🏏 Bastos",
+            Palos::Copas => "🏆 Copas",
+            Palos::Oros => "🪙 Oros",
+        }
+        .to_string()
     }
 }
 
-fn get_card_emoji(card: &Card) -> char {
-    match card.palo {
-        Palos::Espadas => '⚔',
-        Palos::Bastos => '🏏',
-        Palos::Copas => '🏆',
-        Palos::Oros => '🪙',
-    }
-}
-
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct App {
     points: u8,
     exit: bool,
@@ -88,6 +90,7 @@ pub struct App {
     opponent_cards: Vec<Card>,
     player_cards: Vec<Card>,
     selected_card: Option<u8>,
+    triunfo: Palos,
 }
 #[derive(Debug)]
 pub struct Card {
@@ -156,6 +159,7 @@ impl App {
                 },
             ],
             selected_card: Some(3),
+            triunfo: Palos::Copas,
         }
     }
     pub fn run(&mut self, terminal: &mut game::Tui) -> io::Result<()> {
@@ -326,8 +330,8 @@ impl Widget for &App {
                         Constraint::Length(CARD_HEIGHT),
                     );
                     let card_text = Text::from(vec![
-                        Line::from(get_card_name(&card).to_string()),
-                        Line::from(get_card_emoji(&card).to_string()),
+                        Line::from(card.emoji().to_string()),
+                        Line::from(card.emoji().to_string()),
                     ]);
                     Paragraph::new(card_text)
                         .alignment(Alignment::Center)
@@ -336,24 +340,25 @@ impl Widget for &App {
                 }
 
                 //RENDER POINTS AND OPPONENT CARDS
-                
-                
+
                 let vertically_divided_info_box = Layout::default()
                     .direction(Direction::Vertical)
-                    .constraints([Constraint::Percentage(10),Constraint::Percentage(45),Constraint::Percentage(45)] )
+                    .constraints([
+                        Constraint::Percentage(10),
+                        Constraint::Percentage(45),
+                        Constraint::Percentage(45),
+                    ])
                     .split(top_game_layout[0]);
 
                 let vertically_divided_top_part_layout_wo_margin = Layout::default()
                     .direction(Direction::Horizontal)
-                    .constraints([Constraint::Percentage(10),Constraint::Percentage(90)])
+                    .constraints([Constraint::Percentage(10), Constraint::Percentage(90)])
                     .split(vertically_divided_info_box[1]);
 
-                
-                    let horizontally_divided_info_box = Layout::default()
+                let horizontally_divided_info_box = Layout::default()
                     .direction(Direction::Horizontal)
-                    .constraints([Constraint::Percentage(50),Constraint::Percentage(50)])
+                    .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
                     .split(vertically_divided_top_part_layout_wo_margin[1]);
-                
 
                 Paragraph::new(vec![
                     Line::from("Yours"),
@@ -370,11 +375,27 @@ impl Widget for &App {
                 .alignment(Alignment::Left)
                 .block(block.clone())
                 .render(horizontally_divided_info_box[1], buf);
-            
-            Block::bordered().border_set(border::ROUNDED).title(Title::from("Points").alignment(Alignment::Center)).on_blue().render(vertically_divided_top_part_layout_wo_margin[1], buf);
 
+                Block::bordered()
+                    .border_set(border::ROUNDED)
+                    .title(Title::from("Points").alignment(Alignment::Center))
+                    .on_blue()
+                    .render(vertically_divided_top_part_layout_wo_margin[1], buf);
 
-            //OPPONENT CARDS
+                Paragraph::new(vec![
+                    Line::from("Triunfo").alignment(Alignment::Center),
+                    Line::from(self.triunfo.to_string()).alignment(Alignment::Center),
+                ])
+                .render(
+                    center(
+                        vertically_divided_info_box[2],
+                        Constraint::Percentage(100),
+                        Constraint::Percentage(100),
+                    ),
+                    buf,
+                );
+
+                //OPPONENT CARDS
                 Paragraph::new("Opponent Cards")
                     .alignment(Alignment::Center)
                     .block(block.clone())
@@ -399,8 +420,8 @@ impl Widget for &App {
                         Constraint::Length(CARD_HEIGHT),
                     );
                     let card_text = Text::from(vec![
-                        Line::from(get_card_name(&card).to_string()),
-                        Line::from(get_card_emoji(&card).to_string()),
+                        Line::from(card.name()),
+                        Line::from(card.emoji().to_string()),
                     ]);
 
                     let mut user_card_block = Block::default().on_green().title(

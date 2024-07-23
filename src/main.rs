@@ -104,6 +104,7 @@ pub enum Screens {
     Game,
     GameOver,
     Win,
+    ResolutionError,
 }
 
 impl Default for Screens {
@@ -221,28 +222,26 @@ impl App {
         self.selected_card
             .map(|card| &self.player_cards[card as usize])
     }
+
+    fn terminal_resolution_not_supported(&mut self) {
+        self.current_screen = Screens::ResolutionError;
+    }
 }
 
 impl Widget for &App {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let current_screen = &self.current_screen;
 
+        if matches!(current_screen, Screens::ResolutionError) {
+            if (area.width < 100 || area.height < 50) {
+                self.terminal_resolution_not_supported();
+            }
+        }
+
         let parent_layout = Layout::default()
             .constraints([Constraint::Percentage(100)])
             .margin(0)
             .split(area);
-
-        // let game_layout = Layout::default()
-        //     .direction(Direction::Vertical)
-        //     .constraints(
-        //         [
-        //             Constraint::Length(5),
-        //             Constraint::Min(5),
-        //             Constraint::Length(5),
-        //         ]
-        //         .as_ref(),
-        //     )
-        //     .split(parent_layout[0]);
 
         let title = Title::from(" Menu ".bold());
         let instructions = Title::from(Line::from(vec![" Quit ".into(), "<Q> ".blue().bold()]));
@@ -462,6 +461,19 @@ impl Widget for &App {
                     .block(block.clone())
                     .render(game_layout[2], buf);
                 parent_block.render(parent_layout[0], buf)
+
+                //RENDER TABLE LIKE CENTER
+            }
+            Screens::ResolutionError => {
+                let text = vec![
+                    Line::from("The terminal size is too small to play the game"),
+                    Line::from("Please resize the terminal to at least 100x40"),
+                ];
+                let text = Text::from(text);
+                Paragraph::new(text)
+                    .alignment(Alignment::Center)
+                    .block(Block::bordered().border_set(border::FULL))
+                    .render(area, buf);
             }
             _ => {}
         }

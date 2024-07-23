@@ -15,6 +15,9 @@ use std::io;
 
 mod game;
 
+const MIN_TERMINAL_WIDTH: u16 = 35;
+const MIN_TERMINAL_HEIGHT: u16 = 140;
+
 const CARD_WIDTH: u16 = 9;
 const CARD_HEIGHT: u16 = 6;
 
@@ -180,6 +183,11 @@ impl App {
             Event::Key(key_event) if key_event.kind == KeyEventKind::Press => {
                 self.handle_key_event(key_event)
             }
+            Event::Resize(height, width) => {
+                if height < MIN_TERMINAL_HEIGHT || width < MIN_TERMINAL_WIDTH {
+                    self.set_screen(Screens::ResolutionError);
+                }
+            }
             _ => {}
         };
         Ok(())
@@ -222,21 +230,11 @@ impl App {
         self.selected_card
             .map(|card| &self.player_cards[card as usize])
     }
-
-    fn terminal_resolution_not_supported(&mut self) {
-        self.current_screen = Screens::ResolutionError;
-    }
 }
 
 impl Widget for &App {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let current_screen = &self.current_screen;
-
-        if matches!(current_screen, Screens::ResolutionError) {
-            if (area.width < 100 || area.height < 50) {
-                self.terminal_resolution_not_supported();
-            }
-        }
 
         let parent_layout = Layout::default()
             .constraints([Constraint::Percentage(100)])
@@ -467,7 +465,10 @@ impl Widget for &App {
             Screens::ResolutionError => {
                 let text = vec![
                     Line::from("The terminal size is too small to play the game"),
-                    Line::from("Please resize the terminal to at least 100x40"),
+                    Line::from(format!(
+                        "Please resize the terminal to at least {}x{}",
+                        MIN_TERMINAL_WIDTH, MIN_TERMINAL_HEIGHT
+                    )),
                 ];
                 let text = Text::from(text);
                 Paragraph::new(text)

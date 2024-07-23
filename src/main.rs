@@ -2,11 +2,12 @@ use ratatui::{
     buffer::Buffer,
     crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind},
     layout::{Alignment, Constraint, Direction, Flex, Layout, Rect},
-    style::Stylize,
+    style::{Color, Stylize},
     symbols::border,
     text::{Line, Text},
     widgets::{
         block::{Position, Title},
+        canvas::{Canvas, Rectangle},
         Block, Borders, Padding, Paragraph, Widget,
     },
     Frame,
@@ -415,6 +416,16 @@ impl Widget for &App {
                     .split(game_layout[2]);
 
                 for (i, card) in self.player_cards.iter().enumerate() {
+                    let card_canvas = Canvas::default().paint(|ctx| {
+                        ctx.draw(&Rectangle {
+                            x: 0.0,
+                            y: 0.0,
+                            width: CARD_WIDTH as f64,
+                            height: CARD_HEIGHT as f64,
+                            color: Color::Green,
+                        });
+                    });
+
                     let card_area = center(
                         player_cards_layout[i],
                         Constraint::Length(CARD_WIDTH),
@@ -425,11 +436,14 @@ impl Widget for &App {
                         Line::from(card.emoji().to_string()),
                     ]);
 
-                    let mut user_card_block = Block::default().on_green().title(
-                        Title::from((i + 1).to_string())
-                            .position(Position::Bottom)
-                            .alignment(Alignment::Center),
-                    );
+                    let mut user_card_block = Block::bordered()
+                        .on_green()
+                        .border_set(border::ONE_EIGHTH_TALL)
+                        .title(
+                            Title::from((i + 1).to_string())
+                                .position(Position::Bottom)
+                                .alignment(Alignment::Center),
+                        );
                     if let Some(slctd) = self.selected_card {
                         let i = i as u8;
                         if slctd == i {
@@ -448,6 +462,7 @@ impl Widget for &App {
                         .alignment(Alignment::Center)
                         .block(user_card_block)
                         .render(card_area, buf);
+                    card_canvas.render(card_area, buf);
                 }
 
                 Paragraph::new("Table where the game is being played")

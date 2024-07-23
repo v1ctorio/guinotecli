@@ -340,26 +340,26 @@ impl Widget for &App {
                 
                 let vertically_divided_info_box = Layout::default()
                     .direction(Direction::Vertical)
-                    .constraints([Constraint::Percentage(20), Constraint::Percentage(40),Constraint::Percentage(40)] )
+                    .constraints([Constraint::Percentage(10),Constraint::Percentage(45),Constraint::Percentage(45)] )
                     .split(top_game_layout[0]);
 
-                let horizontally_divided_info_box = Layout::default()
+                let vertically_divided_top_part_layout_wo_margin = Layout::default()
                     .direction(Direction::Horizontal)
-                    .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+                    .constraints([Constraint::Percentage(10),Constraint::Percentage(90)])
                     .split(vertically_divided_info_box[1]);
 
                 
-                Paragraph::new("Points")
-                    .alignment(Alignment::Center)
-                    
-                    .block(Block::default())
-                    .render(vertically_divided_info_box[0], buf);
+                    let horizontally_divided_info_box = Layout::default()
+                    .direction(Direction::Horizontal)
+                    .constraints([Constraint::Percentage(50),Constraint::Percentage(50)])
+                    .split(vertically_divided_top_part_layout_wo_margin[1]);
+                
 
                 Paragraph::new(vec![
                     Line::from("Yours"),
                     Line::from(self.points.to_string()).alignment(Alignment::Center),
                 ])
-                .alignment(Alignment::Left)
+                .alignment(Alignment::Right)
                 .block(block.clone())
                 .render(horizontally_divided_info_box[0], buf);
 
@@ -370,7 +370,8 @@ impl Widget for &App {
                 .alignment(Alignment::Left)
                 .block(block.clone())
                 .render(horizontally_divided_info_box[1], buf);
-
+            
+            Block::bordered().border_set(border::ROUNDED).title(Title::from("Points").alignment(Alignment::Center)).on_blue().render(vertically_divided_top_part_layout_wo_margin[1], buf);
 
 
             //OPPONENT CARDS

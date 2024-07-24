@@ -95,6 +95,8 @@ pub struct App {
     player_cards: Vec<Card>,
     selected_card: Option<u8>,
     triunfo: Palos,
+    last_played_card: Option<Card>,
+    last_played_opponent_card: Option<Card>,
 }
 #[derive(Debug)]
 pub struct Card {
@@ -164,6 +166,11 @@ impl App {
                 },
             ],
             selected_card: Some(3),
+            last_played_card: Some(Card {
+                value: CardsValues::Cuatro,
+                palo: Palos::Bastos,
+            }),
+            last_played_opponent_card: None,
             triunfo: Palos::Copas,
         }
     }
@@ -473,9 +480,62 @@ impl Widget for &App {
                     .alignment(Alignment::Center)
                     .block(block.clone())
                     .render(game_layout[2], buf);
-                parent_block.render(parent_layout[0], buf)
+                parent_block.render(parent_layout[0], buf);
 
-                //RENDER TABLE LIKE CENTER
+                //RENDER TABLE LIKE MIDDLE PART
+
+                let layout_middle_vertically_divided_opponent_cards = Layout::default()
+                    .direction(Direction::Vertical)
+                    .constraints([
+                        Constraint::Percentage(30),
+                        Constraint::Percentage(20),
+                        Constraint::Percentage(50),
+                    ])
+                    .split(game_layout[1]);
+                let constraint_for_opponent_card =
+                    layout_middle_vertically_divided_opponent_cards[1];
+
+                if let Some(lst) = &self.last_played_opponent_card {
+                    let card_area = center(
+                        constraint_for_opponent_card,
+                        Constraint::Length(CARD_WIDTH),
+                        Constraint::Length(CARD_HEIGHT),
+                    );
+                    let crd_blck = Block::bordered()
+                        .border_set(border::PROPORTIONAL_TALL)
+                        .on_red();
+
+                    Paragraph::new(Line::from(lst.name()))
+                        .block(crd_blck)
+                        .render(card_area, buf)
+                }
+
+                //render own cards
+                let layout_own_card_on_board = Layout::default()
+                    .direction(Direction::Vertical)
+                    .constraints([
+                        Constraint::Percentage(50),
+                        Constraint::Percentage(20),
+                        Constraint::Percentage(30),
+                    ])
+                    .split(game_layout[1]);
+                let constraint_for_card_board = layout_own_card_on_board[1];
+
+                if let Some(last) = &self.last_played_card {
+                    let card_area = center(
+                        constraint_for_card_board,
+                        Constraint::Length(CARD_WIDTH),
+                        Constraint::Length(CARD_HEIGHT),
+                    );
+                    let crd_blck = Block::bordered()
+                        .border_set(border::PROPORTIONAL_TALL)
+                        .on_red();
+
+                    Paragraph::new(Line::from(last.name()))
+                        .bottom()
+                        .block(crd_blck)
+                        .render(card_area, buf)
+                }
             }
             Screens::ResolutionError => {
                 let text = vec![

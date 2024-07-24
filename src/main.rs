@@ -245,6 +245,14 @@ impl App {
 
 impl Widget for &App {
     fn render(self, area: Rect, buf: &mut Buffer) {
+        let crown = r#"      <>
+        .::::.
+        @\\/W\/\/W\//@
+        \\/^\/\/^\//
+        \_O_<>_O_/
+        "#
+        .to_string();
+
         let current_screen = &self.current_screen;
 
         let parent_layout = Layout::default()

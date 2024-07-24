@@ -2,7 +2,7 @@ use ratatui::{
     buffer::Buffer,
     crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind},
     layout::{Alignment, Constraint, Direction, Flex, Layout, Rect},
-    style::{Color, Stylize},
+    style::{Color, Modifier, Style, Stylize},
     symbols::border,
     text::{Line, Text},
     widgets::{
@@ -211,6 +211,9 @@ impl App {
             KeyCode::Char('2') => self.select_card(1),
             KeyCode::Char('3') => self.select_card(2),
             KeyCode::Char('4') => self.select_card(3),
+            //DEBUG
+            KeyCode::Char('5') => self.set_screen(Screens::GameOver),
+            KeyCode::Char('6') => self.set_screen(Screens::Win),
             _ => {}
         }
     }
@@ -532,7 +535,6 @@ impl Widget for &App {
                         .on_red();
 
                     Paragraph::new(Line::from(last.name()))
-                        .bottom()
                         .block(crd_blck)
                         .render(card_area, buf)
                 }
@@ -549,6 +551,40 @@ impl Widget for &App {
                 Paragraph::new(text)
                     .alignment(Alignment::Center)
                     .block(Block::bordered().border_set(border::FULL))
+                    .render(area, buf);
+            }
+            Screens::Win => {
+                let text = vec![
+                    Line::from("Congratulations! You have won the game"),
+                    Line::from("Press 'q' to quit the game"),
+                ];
+                let text = Text::from(text);
+                Paragraph::new(text)
+                    .alignment(Alignment::Center)
+                    .block(Block::default().borders(Borders::ALL))
+                    .render(area, buf);
+            }
+            Screens::GameOver => {
+                let area = center(area, Constraint::Percentage(50), Constraint::Percentage(50));
+                let text = vec![
+                    Line::from("You have lost the game! You better practive more!"),
+                    Line::from("Press 'q' to quit the game"),
+                    Line::styled(
+                        ":(((((((((((((((((((((((((((((((((",
+                        Style::new()
+                            .fg(Color::Red)
+                            .add_modifier(Modifier::RAPID_BLINK),
+                    ),
+                ];
+                let text = Text::from(text);
+                Paragraph::new(text)
+                    .alignment(Alignment::Center)
+                    .block(
+                        Block::default()
+                            .borders(Borders::ALL)
+                            .on_magenta()
+                            .padding(Padding::uniform(4)),
+                    )
                     .render(area, buf);
             }
             _ => {}

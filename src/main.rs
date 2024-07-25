@@ -31,14 +31,11 @@ enum CardsValues {
     Cinco,
     Seis,
     Siete,
-    Ocho,
-    Nueve,
-    Diez,
     Sota,
     Caballo,
     Rey,
 }
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum Palos {
     Espadas,
     Bastos,
@@ -64,12 +61,36 @@ impl Card {
             CardsValues::Cinco => "Cinco",
             CardsValues::Seis => "Seis",
             CardsValues::Siete => "Siete",
-            CardsValues::Ocho => "Ocho",
-            CardsValues::Nueve => "Nueve",
-            CardsValues::Diez => "Diez",
             CardsValues::Sota => "Sota",
             CardsValues::Caballo => "Caballo",
             CardsValues::Rey => "Rey",
+        }
+    }
+
+    fn value(&self) -> u8 {
+        match self.value {
+            CardsValues::As => 11,
+            CardsValues::Tres => 10,
+            CardsValues::Rey => 4,
+            CardsValues::Caballo => 2,
+            CardsValues::Sota => 3,
+            _ => 0,
+        }
+    }
+
+    fn kill_power(&self) -> u8 {
+        // In guiñote the power of a card defeating another is not the same as the points value of the card
+        match self.value {
+            CardsValues::As => 12,
+            CardsValues::Tres => 11,
+            CardsValues::Rey => 10,
+            CardsValues::Sota => 9,
+            CardsValues::Caballo => 8,
+            CardsValues::Siete => 7,
+            CardsValues::Seis => 6,
+            CardsValues::Cinco => 5,
+            CardsValues::Cuatro => 4,
+            CardsValues::Dos => 3,
         }
     }
 }
@@ -89,6 +110,7 @@ impl Palos {
 #[derive(Debug)]
 pub struct App {
     points: u8,
+    opponent_points: u8,
     exit: bool,
     current_screen: Screens,
     opponent_cards: Vec<Card>,
@@ -123,6 +145,7 @@ impl App {
     pub fn new() -> Self {
         App {
             points: 0,
+            opponent_points: 0,
             exit: false,
             current_screen: Screens::Menu,
             opponent_cards: vec![
@@ -216,6 +239,40 @@ impl App {
             KeyCode::Char('6') => self.set_screen(Screens::Win),
             _ => {}
         }
+    }
+
+    fn add_points(&mut self, cards: Vec<Card>, target: u8) {
+        //if 0 add points to player, if 1 add points to opponent
+        let points_to_add: u8 = cards
+            .iter()
+            .map(|card| match card.value {
+                CardsValues::Sota => 3,
+                CardsValues::Caballo => 2,
+                CardsValues::Rey => 4,
+                CardsValues::As => 11,
+                CardsValues::Tres => 10,
+                _ => 0,
+            })
+            .sum();
+        if target == 0 {
+            self.points += points_to_add;
+        } else {
+            self.opponent_points += points_to_add;
+        }
+    }
+
+    fn do_x_defeat_y(&self, own: Card, opponent: Card) -> bool {
+        let triunfo = &self.triunfo;
+        if (own.palo == triunfo && !matches!(opponent.palo, triunfo)) {
+            return true;
+        }
+        if matches!(own.palo, opponent.palo) {
+            return own.kill_power() > opponent.kill_power();
+        }
+        if own.palo != triunfo && opponent.palo == triunfo {
+            return false;
+        }
+        own.kill_power() > opponent.kill_power()
     }
 
     fn set_screen(&mut self, screen: Screens) {

@@ -1,6 +1,9 @@
 use ratatui::{
     buffer::Buffer,
-    crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind},
+    crossterm::{
+        event::{self, Event, KeyCode, KeyEvent, KeyEventKind},
+        style::ContentStyle,
+    },
     layout::{Alignment, Constraint, Direction, Flex, Layout, Rect},
     style::{Color, Modifier, Style, Stylize},
     symbols::border,
@@ -131,7 +134,7 @@ pub struct Card {
 pub enum Screens {
     Menu,
     Game,
-    GameOver,
+    OpponentWin,
     Win,
     ResolutionError,
 }
@@ -238,7 +241,7 @@ impl App {
             KeyCode::Char('3') => self.select_card(2),
             KeyCode::Char('4') => self.select_card(3),
             //DEBUG
-            KeyCode::Char('5') => self.set_screen(Screens::GameOver),
+            KeyCode::Char('5') => self.set_screen(Screens::OpponentWin),
             KeyCode::Char('6') => self.set_screen(Screens::Win),
             //Opponent card select
             KeyCode::Char('7') => self.opponent_select_card(0),
@@ -681,10 +684,12 @@ impl Widget for &App {
                     .block(Block::default().borders(Borders::ALL))
                     .render(area, buf);
             }
-            Screens::GameOver => {
+            Screens::OpponentWin => {
                 let area = center(area, Constraint::Percentage(50), Constraint::Percentage(50));
                 let text = vec![
-                    Line::from("You have lost the game! You better practive more!"),
+                    Line::from(
+                        "Player 1, you have lost (((the game)))!!!!!!!!!! You better practive more!",
+                    ),
                     Line::from("Press 'q' to quit the game"),
                     Line::styled(
                         ":(((((((((((((((((((((((((((((((((",
@@ -692,8 +697,10 @@ impl Widget for &App {
                             .fg(Color::Red)
                             .add_modifier(Modifier::RAPID_BLINK),
                     ),
+
                 ];
                 let text = Text::from(text);
+                Paragraph::new("\n \n ").render(area, buf);
                 Paragraph::new(text)
                     .alignment(Alignment::Center)
                     .block(
@@ -702,6 +709,9 @@ impl Widget for &App {
                             .on_magenta()
                             .padding(Padding::uniform(4)),
                     )
+                    .render(area, buf);
+                Paragraph::new(crown)
+                    .alignment(Alignment::Center)
                     .render(area, buf);
             }
             _ => {}

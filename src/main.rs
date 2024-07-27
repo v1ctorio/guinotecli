@@ -119,6 +119,7 @@ pub struct App {
     triunfo: Palos,
     last_played_card: Option<Card>,
     last_played_opponent_card: Option<Card>,
+    opponent_selected_card: Option<u8>,
 }
 #[derive(Debug)]
 pub struct Card {
@@ -194,6 +195,7 @@ impl App {
                 palo: Palos::Bastos,
             }),
             last_played_opponent_card: None,
+            opponent_selected_card: None,
             triunfo: Palos::Copas,
         }
     }
@@ -261,18 +263,22 @@ impl App {
         }
     }
 
-    fn do_x_defeat_y(&self, own: Card, opponent: Card) -> bool {
+    fn do_x_defeat_y(&self, x: Card, y: Card) -> bool {
         let triunfo = &self.triunfo;
-        if (own.palo == triunfo && !matches!(opponent.palo, triunfo)) {
+        #[allow(non_snake_case)]
+        let Y_palo = &y.palo;
+        #[allow(non_snake_case)]
+        let X_palo = &x.palo;
+        if X_palo == triunfo && Y_palo != triunfo {
             return true;
         }
-        if matches!(own.palo, opponent.palo) {
-            return own.kill_power() > opponent.kill_power();
+        if X_palo == Y_palo {
+            return x.kill_power() > y.kill_power();
         }
-        if own.palo != triunfo && opponent.palo == triunfo {
+        if X_palo != triunfo && Y_palo == triunfo {
             return false;
         }
-        own.kill_power() > opponent.kill_power()
+        x.kill_power() > y.kill_power()
     }
 
     fn set_screen(&mut self, screen: Screens) {

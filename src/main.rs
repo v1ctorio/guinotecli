@@ -232,6 +232,7 @@ impl App {
             KeyCode::Left => self.decrement_points(),
             KeyCode::Right => self.increment_points(),
             KeyCode::Enter => self.set_screen(Screens::Game),
+            //Player card select
             KeyCode::Char('1') => self.select_card(0),
             KeyCode::Char('2') => self.select_card(1),
             KeyCode::Char('3') => self.select_card(2),
@@ -239,6 +240,13 @@ impl App {
             //DEBUG
             KeyCode::Char('5') => self.set_screen(Screens::GameOver),
             KeyCode::Char('6') => self.set_screen(Screens::Win),
+            //Opponent card select
+            KeyCode::Char('7') => self.opponent_select_card(0),
+            KeyCode::Char('8') => self.opponent_select_card(1),
+            KeyCode::Char('9') => self.opponent_select_card(2),
+            KeyCode::Char('0') => self.opponent_select_card(3),
+            KeyCode::Char('\'') => self.opponent_select_card(4),
+            KeyCode::Char('¡') => self.opponent_select_card(5),
             _ => {}
         }
     }
@@ -299,10 +307,20 @@ impl App {
     fn select_card(&mut self, card: u8) {
         self.selected_card = Some(card);
     }
-    fn get_selected_card(&self) -> Option<&Card> {
-        let c = self.selected_card.unwrap();
-        self.selected_card
-            .map(|card| &self.player_cards[card as usize])
+
+    fn opponent_select_card(&mut self, card: u8) {
+        self.opponent_selected_card = Some(card);
+    }
+
+    fn get_selected_card(&self, opponent: bool) -> Option<&Card> {
+        //return the player selected card if false, else return the opponent selected card
+        if opponent {
+            self.opponent_selected_card
+                .map(|card| &self.opponent_cards[card as usize])
+        } else {
+            self.selected_card
+                .map(|card| &self.player_cards[card as usize])
+        }
     }
 }
 
@@ -407,6 +425,34 @@ impl Widget for &App {
                 let card_block = Block::default().on_red();
                 for (i, card) in self.opponent_cards.iter().enumerate() {
                     //let card_area = centered_rect(40, 60, top_game_cards_layout[i]);
+                    let card_button = match i {
+                        0 => "7",
+                        1 => "8",
+                        2 => "9",
+                        3 => "0",
+                        4 => "'",
+                        _ => "¡",
+                    };
+
+                    let mut card_block = card_block.clone().title(
+                        Title::from(card_button)
+                            .alignment(Alignment::Center)
+                            .position(Position::Bottom),
+                    );
+
+                    if let Some(slctd) = self.opponent_selected_card {
+                        let i = i as u8;
+                        if i == slctd {
+                            card_block = Block::bordered()
+                                .on_red()
+                                .title(
+                                    Title::from(card_button)
+                                        .alignment(Alignment::Center)
+                                        .position(Position::Bottom),
+                                )
+                                .border_set(border::DOUBLE);
+                        }
+                    }
                     let card_area = center(
                         top_game_cards_layout[i],
                         Constraint::Length(CARD_WIDTH),

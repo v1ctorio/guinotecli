@@ -700,12 +700,12 @@ impl Widget for &App {
                                     self.do_x_defeat_y(&selected_card, &opponent_selected_card);
 
                                 if does_player_win {
-                                    self.set_screen(Screens::Win)
+                                    //   self.set_screen(Screens::Win)
                                 } else {
-                                    self.set_screen(Screens::OpponentWin)
+                                    //   self.set_screen(Screens::OpponentWin)
                                 }
 
-                                self.clean_selected();
+                                //self.clean_selected();
                             }
                             None => {}
                         },

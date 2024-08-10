@@ -216,6 +216,11 @@ impl App {
         frame.render_widget(self, frame.size())
     }
 
+    fn clean_selected(&mut self) {
+        self.selected_card = None;
+        self.opponent_selected_card = None;
+    }
+
     fn handle_events(&mut self) -> io::Result<()> {
         match event::read()? {
             Event::Key(key_event) if key_event.kind == KeyEventKind::Press => {
@@ -278,7 +283,7 @@ impl App {
         }
     }
 
-    fn do_x_defeat_y(&self, x: Card, y: Card) -> bool {
+    fn do_x_defeat_y(&self, x: &Card, y: &Card) -> bool {
         let triunfo = &self.triunfo;
         #[allow(non_snake_case)]
         let Y_palo = &y.palo;
@@ -683,10 +688,34 @@ impl Widget for &App {
                         .block(crd_blck)
                         .render(card_area, buf)
                 }
+
+                if (self.selected_card.is_some() && self.opponent_selected_card.is_some()) {
+                    match self.selected_card {
+                        Some(selected) => match self.opponent_selected_card {
+                            Some(opponent_selected) => {
+                                let selected_card = &self.player_cards[selected as usize];
+                                let opponent_selected_card =
+                                    &self.opponent_cards[opponent_selected as usize];
+                                let does_player_win =
+                                    self.do_x_defeat_y(&selected_card, &opponent_selected_card);
+
+                                if does_player_win {
+                                    self.set_screen(Screens::Win)
+                                } else {
+                                    self.set_screen(Screens::OpponentWin)
+                                }
+
+                                self.clean_selected();
+                            }
+                            None => {}
+                        },
+                        None => {}
+                    }
+                }
             }
             Screens::Win => {
                 let text = vec![
-                    Line::from("Congratulations! You have won the game"),
+                    Line::from("Congratulations! Player 1, You have won the game"),
                     Line::from("Press 'q' to quit the game"),
                 ];
                 let text = Text::from(text);
@@ -698,6 +727,7 @@ impl Widget for &App {
             Screens::OpponentWin => {
                 let area = center(area, Constraint::Percentage(50), Constraint::Percentage(50));
                 let text = vec![
+                    Line::from("Player 2, you have won the game! Congratulations!"),
                     Line::from(
                         "Player 1, you have lost (((the game)))!!!!!!!!!! You better practive more!",
                     ),

@@ -1,4 +1,3 @@
-workspace = { members = ["guinoteserver"] }
 [package]
 name = "guinotecli"
 version = "0.1.0"

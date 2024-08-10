@@ -19,8 +19,8 @@ use std::io;
 
 mod game;
 
-const MIN_TERMINAL_WIDTH: u16 = 35;
-const MIN_TERMINAL_HEIGHT: u16 = 140;
+const MIN_TERMINAL_WIDTH: u16 = 140;
+const MIN_TERMINAL_HEIGHT: u16 = 35;
 
 const CARD_WIDTH: u16 = 9;
 const CARD_HEIGHT: u16 = 6;
@@ -123,6 +123,7 @@ pub struct App {
     last_played_card: Option<Card>,
     last_played_opponent_card: Option<Card>,
     opponent_selected_card: Option<u8>,
+    is_terminal_too_small: bool,
 }
 #[derive(Debug)]
 pub struct Card {
@@ -148,6 +149,7 @@ impl Default for Screens {
 impl App {
     pub fn new() -> Self {
         App {
+            is_terminal_too_small: false,
             points: 0,
             opponent_points: 0,
             exit: false,
@@ -219,9 +221,11 @@ impl App {
             Event::Key(key_event) if key_event.kind == KeyEventKind::Press => {
                 self.handle_key_event(key_event)
             }
-            Event::Resize(height, width) => {
+            Event::Resize(width, height) => {
                 if height < MIN_TERMINAL_HEIGHT || width < MIN_TERMINAL_WIDTH {
-                    self.set_screen(Screens::ResolutionError);
+                    self.is_terminal_too_small = true;
+                } else {
+                    self.is_terminal_too_small = false;
                 }
             }
             _ => {}
@@ -329,6 +333,27 @@ impl App {
 
 impl Widget for &App {
     fn render(self, area: Rect, buf: &mut Buffer) {
+        if (self.is_terminal_too_small) {
+            let text = vec![
+                Line::from("The terminal size is too small to play the game"),
+                Line::from(format!(
+                    "Please resize the terminal to at least {}x{}",
+                    MIN_TERMINAL_WIDTH, MIN_TERMINAL_HEIGHT
+                )),
+                Line::from(format!(
+                    "Current resolution is {}x{}",
+                    area.width, area.height
+                )),
+            ];
+
+            let text = Text::from(text);
+            Paragraph::new(text)
+                .alignment(Alignment::Center)
+                .block(Block::bordered().border_set(border::FULL))
+                .render(area, buf);
+            return;
+        }
+
         let crown = r#"      <>
         .::::.
         @\\/W\/\/W\//@
@@ -658,20 +683,6 @@ impl Widget for &App {
                         .block(crd_blck)
                         .render(card_area, buf)
                 }
-            }
-            Screens::ResolutionError => {
-                let text = vec![
-                    Line::from("The terminal size is too small to play the game"),
-                    Line::from(format!(
-                        "Please resize the terminal to at least {}x{}",
-                        MIN_TERMINAL_WIDTH, MIN_TERMINAL_HEIGHT
-                    )),
-                ];
-                let text = Text::from(text);
-                Paragraph::new(text)
-                    .alignment(Alignment::Center)
-                    .block(Block::bordered().border_set(border::FULL))
-                    .render(area, buf);
             }
             Screens::Win => {
                 let text = vec![
